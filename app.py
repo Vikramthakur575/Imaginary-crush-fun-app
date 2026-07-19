@@ -5,7 +5,25 @@ from database import init_db, log_submission, get_submissions, clear_all_data
 from story_generator import generate_story
 
 
-
+# --- Admin View ---
+query_params = st.query_params
+if query_params.get("admin") == "true":
+    st.title("🔐 Admin Panel")
+    password = st.text_input("Enter admin password", type="password")
+    if password == st.secrets.get("admin_password", ""):
+        df = get_submissions()
+        st.dataframe(df)
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button("Download as CSV", csv, "love_stories.csv", "text/csv")
+        confirm = st.checkbox("I understand this will delete all data permanently")
+        if confirm and st.button("Clear all data"):
+            clear_all_data()
+            st.success("All data cleared.")
+            st.rerun()
+    elif password:
+        st.error("Incorrect password")
+    st.stop()  # prevents the rest of the app from loading on the admin page
+# --- End Admin View ---
 # Set page configuration
 st.set_page_config(
     page_title="Imaginary Love Story Generator",
