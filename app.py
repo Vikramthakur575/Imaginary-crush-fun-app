@@ -5,10 +5,17 @@ from database import init_db, log_submission, get_submissions, clear_all_data
 from story_generator import generate_story
 import requests
 
-FORMSPREE_URL = "https://formspree.io/f/xojgdgav"  # replace with your actual endpoint
+# Formspree endpoint is pulled from Streamlit secrets, not hardcoded here.
+# Set it in Streamlit Cloud: Settings -> Secrets -> formspree_url = "https://formspree.io/f/xxxxxxxx"
+# For local testing, put the same line in a .streamlit/secrets.toml file (and gitignore that folder).
+FORMSPREE_URL = st.secrets.get("formspree_url", "")
+
 
 def send_to_formspree(user_name, crush_name, answers, compatibility):
     """Sends submission data to Formspree via POST request."""
+    if not FORMSPREE_URL:
+        print("Formspree URL not configured in secrets - skipping submission.")
+        return False
     try:
         payload = {
             "user_name": user_name,
@@ -21,14 +28,13 @@ def send_to_formspree(user_name, crush_name, answers, compatibility):
             data=payload,
             headers={"Accept": "application/json"}
         )
+        print(f"Formspree status: {response.status_code}, response: {response.text}")
         return response.status_code == 200
     except Exception as e:
         print(f"Formspree submission error: {e}")
         return False
 
 
-
-  # always stop here so the quiz never renders on the admin page
 # Set page configuration
 st.set_page_config(
     page_title="Imaginary Love Story Generator",
@@ -309,8 +315,11 @@ if st.session_state.page == "input":
                 st.session_state.current_stage_idx = 0
                 st.session_state.page = "reveal"
                 
-                # Log to SQLite DB
+                # Log to SQLite DB (local/ephemeral storage)
                 log_submission(user_name, crush_name, answers, st.session_state.compatibility_score)
+
+                # Send to Formspree (this was missing before - the function was defined but never called)
+                send_to_formspree(user_name, crush_name, answers, st.session_state.compatibility_score)
                 
                 # Rerun to switch page
                 st.rerun()
