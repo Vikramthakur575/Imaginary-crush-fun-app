@@ -61,3 +61,30 @@ def log_submission(user_name, crush_name, answers, compatibility):
     except Exception as e:
         print(f"Database logging error: {e}")
         return False
+
+def get_submissions():
+    """Retrieves all submissions from the database as a pandas DataFrame."""
+    import pandas as pd
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        df = pd.read_sql_query("SELECT * FROM submissions ORDER BY timestamp DESC", conn)
+        conn.close()
+        return df
+    except Exception as e:
+        print(f"Error reading database: {e}")
+        return pd.DataFrame()
+
+def clear_all_data():
+    """Deletes all submissions from the database."""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM submissions")
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error clearing database: {e}")
+        return False
+
+

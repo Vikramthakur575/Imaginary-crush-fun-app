@@ -1,8 +1,10 @@
 import streamlit as st
 import random
 import os
-from database import init_db, log_submission
+from database import init_db, log_submission, get_submissions, clear_all_data
 from story_generator import generate_story
+
+
 
 # Set page configuration
 st.set_page_config(
@@ -290,8 +292,37 @@ if st.session_state.page == "input":
                 # Rerun to switch page
                 st.rerun()
 
+    # View Submissions Log Section (Outside the form)
+    st.markdown("<br><hr>", unsafe_allow_html=True)
+    with st.expander("📊 View Past Stories & Compatibility Logs"):
+        df = get_submissions()
+        if not df.empty:
+            st.dataframe(
+                df,
+                use_container_width=True,
+                column_config={
+                    "id": "ID",
+                    "user_name": "User Name",
+                    "crush_name": "Crush Name",
+                    "meet_place": "Meet Place",
+                    "vibe": "Vibe",
+                    "first_conv": "First Conversation",
+                    "realization": "Realization",
+                    "first_date": "First Date",
+                    "challenge": "Silly Challenge",
+                    "compatibility": st.column_config.NumberColumn(
+                        "Compatibility %",
+                        format="%d%%"
+                    ),
+                    "timestamp": "Timestamp"
+                }
+            )
+        else:
+            st.info("No stories generated yet. Be the first to try it out! 💕")
+
 # Page 2: Story reveal screen
 elif st.session_state.page == "reveal":
+
     user = st.session_state.user_name.strip().title()
     crush = st.session_state.crush_name.strip().title()
     
