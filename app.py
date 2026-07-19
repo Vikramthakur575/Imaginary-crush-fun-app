@@ -3,27 +3,32 @@ import random
 import os
 from database import init_db, log_submission, get_submissions, clear_all_data
 from story_generator import generate_story
+import requests
+
+FORMSPREE_URL = "https://formspree.io/f/xojgdgav"  # replace with your actual endpoint
+
+def send_to_formspree(user_name, crush_name, answers, compatibility):
+    """Sends submission data to Formspree via POST request."""
+    try:
+        payload = {
+            "user_name": user_name,
+            "crush_name": crush_name,
+            "compatibility": compatibility,
+            **answers  # unpacks meet_place, vibe, first_conv, etc.
+        }
+        response = requests.post(
+            FORMSPREE_URL,
+            data=payload,
+            headers={"Accept": "application/json"}
+        )
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Formspree submission error: {e}")
+        return False
 
 
-# --- Admin View ---
-query_params = st.query_params
-if query_params.get("admin") == "true":
-    st.title("🔐 Admin Panel")
-    password = st.text_input("Enter admin password", type="password")
-    if password == st.secrets.get("admin_password", ""):
-        df = get_submissions()
-        st.dataframe(df)
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("Download as CSV", csv, "love_stories.csv", "text/csv")
-        confirm = st.checkbox("I understand this will delete all data permanently")
-        if confirm and st.button("Clear all data"):
-            clear_all_data()
-            st.success("All data cleared.")
-            st.rerun()
-    elif password:
-        st.error("Incorrect password")
-    st.stop()  # prevents the rest of the app from loading on the admin page
-# --- End Admin View ---
+
+  # always stop here so the quiz never renders on the admin page
 # Set page configuration
 st.set_page_config(
     page_title="Imaginary Love Story Generator",
@@ -310,33 +315,7 @@ if st.session_state.page == "input":
                 # Rerun to switch page
                 st.rerun()
 
-    # View Submissions Log Section (Outside the form)
-    st.markdown("<br><hr>", unsafe_allow_html=True)
-    with st.expander("📊 View Past Stories & Compatibility Logs"):
-        df = get_submissions()
-        if not df.empty:
-            st.dataframe(
-                df,
-                use_container_width=True,
-                column_config={
-                    "id": "ID",
-                    "user_name": "User Name",
-                    "crush_name": "Crush Name",
-                    "meet_place": "Meet Place",
-                    "vibe": "Vibe",
-                    "first_conv": "First Conversation",
-                    "realization": "Realization",
-                    "first_date": "First Date",
-                    "challenge": "Silly Challenge",
-                    "compatibility": st.column_config.NumberColumn(
-                        "Compatibility %",
-                        format="%d%%"
-                    ),
-                    "timestamp": "Timestamp"
-                }
-            )
-        else:
-            st.info("No stories generated yet. Be the first to try it out! 💕")
+    
 
 # Page 2: Story reveal screen
 elif st.session_state.page == "reveal":
